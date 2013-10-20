@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+    <ProgressBar
+        android:id="@+id/refresh_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_alignParentLeft="true"
+        android:layout_marginLeft="50dp"
+        style="?android:attr/progressBarStyleSmall"
+        android:visibility="gone"/>
+    <ImageView
+        android:id="@+id/arrow_imgview"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_alignParentLeft="true"
+        android:src="@drawable/arrow_down"
+        android:layout_marginLeft="50dp"
+        android:layout_marginTop="10dp"/>
+    <TextView
+        android:id="@+id/prompt_tv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="@string/prompt_pull_to_refresh"/>
+    <TextView
+        android:id="@+id/last_update_tv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/prompt_tv"
+        android:paddingTop="5dp"
+        android:gravity="center"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:visibility="invisible"/>
+</RelativeLayout>
