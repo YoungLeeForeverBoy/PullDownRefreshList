@@ -65,17 +65,17 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
     }
 
     private void init(Context context) {
-        mFlipAnim = new RotateAnimation(0, 90,
+        mFlipAnim = new RotateAnimation(0, 180,
                 RotateAnimation.RELATIVE_TO_SELF, 0.5f,
                 RotateAnimation.RELATIVE_TO_SELF, 0.5f);
         mFlipAnim.setFillAfter(true);
-        mFlipAnim.setDuration(300);
+        mFlipAnim.setDuration(250);
         mFlipAnim.setInterpolator(new LinearInterpolator());
         mReverseAnim = new RotateAnimation(-180, 0,
                 RotateAnimation.RELATIVE_TO_SELF, 0.5f,
                 RotateAnimation.RELATIVE_TO_SELF, 0.5f);
         mReverseAnim.setFillAfter(true);
-        mReverseAnim.setDuration(300);
+        mReverseAnim.setDuration(250);
         mReverseAnim.setInterpolator(new LinearInterpolator());
 
         mHeaderView = LayoutInflater.from(context).inflate(
@@ -94,8 +94,6 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
         mHeaderView.setMinimumHeight(70);
 
         setOnScrollListener(this);
-
-        Utils.log(TAG + ".init(), originalTopPadding = " + headerViewOriginalTopPadding);
     }
 
     @Override
@@ -121,120 +119,47 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        //isBack = false;
-
         switch(ev.getAction()) {
             case MotionEvent.ACTION_DOWN: {
-                if(refreshState != STATE_REFRESHING && firstVisibleItem == 0 && !isRecord) {
+                if(refreshState != STATE_REFRESHING &&
+                        firstVisibleItem == 0 && !isRecord) {
                     lastMotionY = (int)ev.getY();
                     isRecord = true;
-
-                    Utils.log("ACTION_DOWN, lastMotionY = " + lastMotionY);
                 }
             }break;
 
             case MotionEvent.ACTION_MOVE: {
-                Utils.log("ACTION_MOVE, refreshState = " + refreshState
-                        + ", firstVisibleItem = " + firstVisibleItem
-                        + ", scrollState = " + scrollState);
-                if(refreshState != STATE_REFRESHING && firstVisibleItem == 0
-                        && scrollState == OnScrollListener.SCROLL_STATE_TOUCH_SCROLL) {
-                    if(!isRecord) {
-                        lastMotionY = (int)ev.getY();
-                        isRecord = true;
-                    }
+                if(refreshState != STATE_REFRESHING &&
+                        firstVisibleItem == 0 && !isRecord) {
+                    lastMotionY = (int)ev.getY();
+                    isRecord = true;
+                }
 
-                    if(isVerticalScrollBarEnabled())
-                        setVerticalScrollBarEnabled(false);
-
-                    int tempY = (int)ev.getY();
-                    if(tempY - lastMotionY >= headerViewHeight + 20) {
-                        refreshState = STATE_RELEASE_TO_REFRESH;
-                        isBack = true;
-
-                        mPromptTv.setText(R.string.prompt_release_to_refresh);
-                        mArrowImgView.clearAnimation();
-                        mArrowImgView.startAnimation(mFlipAnim);
-
-                        mHeaderView.setPadding(
-                                mHeaderView.getPaddingLeft(),
-                                (int)ev.getY() - lastMotionY - headerViewHeight,
-                                mHeaderView.getPaddingRight(), mHeaderView.getPaddingBottom());
-                        //mHeaderView.invalidate();
-
-                        Utils.log("ACTION_MOVE, refreshState is STATE_RELEASE_TO_REFRESH"
-                                + ", tempY - lastMotionY =" + (tempY - lastMotionY)
-                                + ", headerViewHeight = " + headerViewHeight);
-                    } else if(tempY - lastMotionY > 0 &&
-                            tempY - lastMotionY < headerViewHeight + 20) {
-                        refreshState = STATE_PULL_TO_REFRESH;
-
-                        if(isBack){
-                            mArrowImgView.clearAnimation();
-                            mArrowImgView.startAnimation(mReverseAnim);
-
-                            isBack = false;
-                        }
-                        mPromptTv.setText(R.string.prompt_pull_to_refresh);
-
-                        Utils.log("mHeaderView == null ? " + (mHeaderView == null));
-                        mHeaderView.setPadding(
-                                mHeaderView.getPaddingLeft(), headerViewOriginalTopPadding,
-                                mHeaderView.getPaddingRight(), mHeaderView.getPaddingBottom());
-                        mHeaderView.invalidate();
-
-                        Utils.log("ACTION_MOVE, refreshState is STATE_PULL_TO_REFRESH"
-                                + ", tempY - lastMotionY = " + (tempY - lastMotionY)
-                                + ", headerViewHeight = " + headerViewHeight);
-                    }
+                //for smooth, do not care the refreshState, just set top padding of
+                //mHeaderView, the refreshState we can change it at onScroll()
+                if(firstVisibleItem == 0 && isRecord &&
+                        ((int)ev.getY() - lastMotionY >= headerViewHeight)) {
+                    mHeaderView.setPadding(mHeaderView.getPaddingLeft(),
+                            (int)ev.getY() - lastMotionY - headerViewHeight,
+                            mHeaderView.getPaddingRight(), mHeaderView.getPaddingBottom());
                 }
             }break;
 
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP: {
-                if(!isVerticalScrollBarEnabled())
-                    setVerticalScrollBarEnabled(true);
+                if(refreshState == STATE_RELEASE_TO_REFRESH) {
+                    isRecord = false;
+                    lastMotionY = -1;
 
-                if(firstVisibleItem == 0) {
-                    if(refreshState == STATE_RELEASE_TO_REFRESH) {
-                        refreshState = STATE_REFRESHING;
-
-                        mHeaderView.setPadding(
-                                mHeaderView.getPaddingLeft(), headerViewOriginalTopPadding,
-                                mHeaderView.getPaddingRight(), mHeaderView.getPaddingBottom());
-                        mHeaderView.invalidate();
-
-                        mArrowImgView.clearAnimation();
-                        mArrowImgView.setVisibility(View.GONE);
-                        mLastUpdateTv.setVisibility(View.INVISIBLE);
-                        mRefreshingBar.setVisibility(View.VISIBLE);
-                        mPromptTv.setText(R.string.prompt_refreshing);
-
-                        Utils.log("ACTION_UP, refreshState is STATE_RELEASE_TO_REFRESH");
-
-                        onRefresh();
-                    } else if(refreshState == STATE_PULL_TO_REFRESH) {
-                        refreshState = STATE_NORMAL;
-
-                        mHeaderView.setPadding(
-                                mHeaderView.getPaddingLeft(), headerViewOriginalTopPadding,
-                                mHeaderView.getPaddingRight(), mHeaderView.getPaddingBottom());
-                        mHeaderView.invalidate();
-
-                        mArrowImgView.clearAnimation();
-                        mArrowImgView.setVisibility(View.VISIBLE);
-                        mRefreshingBar.setVisibility(View.GONE);
-                        mPromptTv.setText(R.string.prompt_pull_to_refresh);
-
-                        setSelection(1);
-
-                        Utils.log("ACTION_UP, refreshState is STATE_PULL_TO_REFRESH");
-                    }
+                    prepareRefreshing();
+                    onRefresh();
+                } else if(firstVisibleItem == 0 && refreshState != STATE_REFRESHING) {
+                    setSelection(1);
+                    resetHeaderView();
                 }
 
-                isRecord = false;
-                isBack = false;
-                lastMotionY = -1;
+                if(!isVerticalScrollBarEnabled())
+                    setVerticalScrollBarEnabled(true);
             }break;
         }
 
@@ -245,11 +170,73 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
     public void onScroll(AbsListView view, int firstVisibleItem,
             int visibleItemCount, int totalItemCount) {
         this.firstVisibleItem = firstVisibleItem;
+
+        if(refreshState != STATE_REFRESHING &&
+                scrollState == OnScrollListener.SCROLL_STATE_TOUCH_SCROLL) {
+            if(firstVisibleItem == 0) {
+                if(mHeaderView.getBottom() >= headerViewHeight + 20 &&
+                        refreshState != STATE_RELEASE_TO_REFRESH) {
+                    mArrowImgView.clearAnimation();
+                    mArrowImgView.startAnimation(mFlipAnim);
+                    mPromptTv.setText(R.string.prompt_release_to_refresh);
+
+                    refreshState = STATE_RELEASE_TO_REFRESH;
+
+                    if(isVerticalScrollBarEnabled())
+                        setVerticalScrollBarEnabled(false);
+                } else if(mHeaderView.getBottom() > 0 &&
+                        mHeaderView.getBottom() < headerViewHeight + 20) {
+                    if(refreshState == STATE_RELEASE_TO_REFRESH) {
+                        mArrowImgView.clearAnimation();
+                        mArrowImgView.startAnimation(mReverseAnim);
+                    }
+                    mPromptTv.setText(R.string.prompt_pull_to_refresh);
+
+                    refreshState = STATE_PULL_TO_REFRESH;
+                }
+            } else {
+                resetHeaderView();
+            }
+        } else if(firstVisibleItem == 0 &&
+                scrollState == OnScrollListener.SCROLL_STATE_FLING) {
+            setSelection(1);
+        }
     }
 
     @Override
     public void onScrollStateChanged(AbsListView view, int scrollState) {
         this.scrollState = scrollState;
+    }
+
+    private void resetHeaderView() {
+        if(refreshState != STATE_NORMAL) {
+            refreshState = STATE_NORMAL;
+
+            resetHeaderPadding();
+
+            mPromptTv.setText(R.string.prompt_pull_to_refresh);
+            mArrowImgView.clearAnimation();
+            mLastUpdateTv.setVisibility(View.INVISIBLE);
+            mRefreshingBar.setVisibility(View.GONE);
+        }
+    }
+
+    private void resetHeaderPadding() {
+        mHeaderView.setPadding(
+                mHeaderView.getPaddingLeft(), headerViewOriginalTopPadding,
+                mHeaderView.getPaddingRight(), mHeaderView.getPaddingBottom());
+    }
+
+    private void prepareRefreshing() {
+        resetHeaderPadding();
+
+        mArrowImgView.setVisibility(View.GONE);
+        mArrowImgView.clearAnimation();
+        mRefreshingBar.setVisibility(View.VISIBLE);
+        mLastUpdateTv.setVisibility(View.GONE);
+        mPromptTv.setText(R.string.prompt_refreshing);
+
+        refreshState = STATE_REFRESHING;
     }
 
     public void measureView(View child) {
@@ -286,12 +273,13 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
 
         mArrowImgView.setVisibility(View.VISIBLE);
         mArrowImgView.clearAnimation();
+        mLastUpdateTv.setVisibility(View.INVISIBLE);
         mPromptTv.setText(R.string.prompt_pull_to_refresh);
         mRefreshingBar.setVisibility(View.GONE);
 
         refreshState = STATE_NORMAL;
 
-        if(mHeaderView.getBottom() > 0) {
+        if(firstVisibleItem == 0) {
             //attention, run invalidateViews() before setSlecltion(1)
             invalidateViews();
             setSelection(1);
