@@ -93,7 +93,8 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
 
         mHeaderView.setMinimumHeight(70);
 
-        setOnScrollListener(this);
+        //call super.setOnScrollListener() but not itself
+        super.setOnScrollListener(this);
     }
 
     @Override
@@ -201,11 +202,18 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
                 scrollState == OnScrollListener.SCROLL_STATE_FLING) {
             setSelection(1);
         }
+
+        if(onScrollListener != null)
+            onScrollListener.onScroll(view, firstVisibleItem,
+                    visibleItemCount, totalItemCount);
     }
 
     @Override
     public void onScrollStateChanged(AbsListView view, int scrollState) {
         this.scrollState = scrollState;
+
+        if(onScrollListener != null)
+            onScrollListener.onScrollStateChanged(view, scrollState);
     }
 
     private void resetHeaderView() {
@@ -284,6 +292,11 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
             invalidateViews();
             setSelection(1);
         }
+    }
+
+    @Override
+    public void setOnScrollListener(OnScrollListener l) {
+        onScrollListener = l;
     }
 
     public void setOnClickRefreshListener(OnClickRefreshListener listener) {
