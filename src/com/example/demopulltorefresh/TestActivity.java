@@ -11,10 +11,12 @@ import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.example.demopulltorefresh.PullToRefreshListView.OnLoadMoreListener;
 import com.example.demopulltorefresh.PullToRefreshListView.OnRefreshListener;
 
 public class TestActivity extends Activity {
@@ -34,6 +36,13 @@ public class TestActivity extends Activity {
             @Override
             public void onRefresh() {
                 new RefreshTask().execute();
+            }
+        });
+        mPullToRefreshLv.setOnLoadMoreListener(new OnLoadMoreListener() {
+
+            @Override
+            public void onLoadMore() {
+                new LoadMoreTask().execute();
             }
         });
         mAdapter = new MyAdapter(this, 10);
@@ -106,6 +115,25 @@ public class TestActivity extends Activity {
         @Override
         protected void onPostExecute(Void result) {
             mPullToRefreshLv.onRefreshComplete();
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+    }
+
+    public class LoadMoreTask extends AsyncTask<Void, Integer, Void> {
+
+        @Override
+        protected void onPostExecute(Void result) {
+            mPullToRefreshLv.onLoadMoreComplete();
         }
 
         @Override

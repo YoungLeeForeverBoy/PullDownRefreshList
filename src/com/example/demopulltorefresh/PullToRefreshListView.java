@@ -32,12 +32,16 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
     private TextView mPromptTv;
     private TextView mLastUpdateTv;
 
+    private View mBottomView;
+    private ProgressBar mLoadMoreBar;
+    private TextView mLoadMoreTv;
+
     private RotateAnimation mFlipAnim;
     private RotateAnimation mReverseAnim;
 
-    private OnClickRefreshListener onClickRefreshListener;
     private OnRefreshListener onRefreshListener;
     private OnScrollListener onScrollListener;
+    private OnLoadMoreListener onLoadMoreListener;
 
     private int refreshState = STATE_NORMAL;
     private int scrollState = OnScrollListener.SCROLL_STATE_IDLE;
@@ -84,6 +88,20 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
         mArrowImgView = (ImageView)mHeaderView.findViewById(R.id.arrow_imgview);
         mPromptTv = (TextView)mHeaderView.findViewById(R.id.prompt_tv);
         mLastUpdateTv = (TextView)mHeaderView.findViewById(R.id.last_update_tv);
+
+        //bottom view, for load more when arrive the ListView bottom
+        mBottomView = LayoutInflater.from(context).inflate(
+                R.layout.layout_auto_load_buttom_view, this, false);
+        mLoadMoreBar = (ProgressBar)mBottomView.findViewById(R.id.load_more_bar);
+        mLoadMoreTv = (TextView)mBottomView.findViewById(R.id.load_more_tv);
+        addFooterView(mBottomView);
+        mBottomView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(refreshState != STATE_REFRESHING)
+                    onLoadMore();
+            }
+        });
 
         headerViewOriginalTopPadding = mHeaderView.getPaddingTop();
         addHeaderView(mHeaderView);
@@ -171,7 +189,8 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
     public void onScroll(AbsListView view, int firstVisibleItem,
             int visibleItemCount, int totalItemCount) {
         this.firstVisibleItem = firstVisibleItem;
-
+        Utils.log("onScroll(), lastVisibleItem = " + getLastVisiblePosition()
+                + ", item count = " + view.getCount());
         if(refreshState != STATE_REFRESHING &&
                 scrollState == OnScrollListener.SCROLL_STATE_TOUCH_SCROLL) {
             if(firstVisibleItem == 0) {
@@ -235,6 +254,15 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
                 mHeaderView.getPaddingRight(), mHeaderView.getPaddingBottom());
     }
 
+    private void resetBottomView() {
+        if(mBottomView != null) {
+            mLoadMoreBar.setVisibility(View.GONE);
+            mLoadMoreTv.setText(R.string.prompt_load_more);
+        }
+
+        refreshState = STATE_NORMAL;
+    }
+
     private void prepareRefreshing() {
         resetHeaderPadding();
 
@@ -273,6 +301,17 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
             onRefreshListener.onRefresh();
     }
 
+    private void onLoadMore() {
+        if(onLoadMoreListener != null) {
+            refreshState = STATE_REFRESHING;
+
+            mLoadMoreTv.setText(R.string.prompt_refreshing);
+            mLoadMoreBar.setVisibility(View.VISIBLE);
+
+            onLoadMoreListener.onLoadMore();
+        }
+    }
+
     public void onRefreshComplete() {
         mHeaderView.setPadding(
                 mHeaderView.getPaddingLeft(), headerViewOriginalTopPadding,
@@ -294,19 +333,22 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
         }
     }
 
+    public void onLoadMoreComplete() {
+        resetBottomView();
+    }
+
     @Override
     public void setOnScrollListener(OnScrollListener l) {
         onScrollListener = l;
     }
 
-    public void setOnClickRefreshListener(OnClickRefreshListener listener) {
-        if(listener != null)
-            onClickRefreshListener = listener;
-    }
-
     public void setOnRefreshListener(OnRefreshListener listener) {
         if(listener !=null)
             onRefreshListener = listener;
+    }
+
+    public void setOnLoadMoreListener(OnLoadMoreListener listener) {
+        onLoadMoreListener = listener;
     }
 
     public interface OnRefreshListener {
@@ -315,5 +357,9 @@ public class PullToRefreshListView extends ListView implements OnScrollListener{
 
     public interface OnClickRefreshListener {
         public void onClick(View v);
+    }
+
+    public interface OnLoadMoreListener {
+        public void onLoadMore();
     }
 }
